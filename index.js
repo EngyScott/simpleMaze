@@ -1,8 +1,10 @@
 const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;
-const cells = 6;
-const width = 600;
-const height = 600;
-const unitLength = width / cells;
+const cellsVertic = 20;
+const cellsHorize = 15;
+const width = window.innerWidth;
+const height = window.innerHeight;
+const unitLength = height / cellsVertic;
+const unitWidth = width / cellsHorize;
 const engine = Engine.create();
 engine.world.gravity.y = 0;
 const { world } = engine;
@@ -11,7 +13,8 @@ const render = Render.create({
     engine: engine,
     options: {
         width,
-        height
+        height,
+        wireframes: false
     }
 });
 Render.run(render);
@@ -44,24 +47,24 @@ const shuffle = (arr)=>{
     return arr;
 }
 
-const grid = Array(cells)
+const grid = Array(cellsVertic)
 .fill(null)
 .map(()=>
-    Array(cells).fill(false)
+    Array(cellsHorize).fill(false)
 );
 
 //VERTICAL ARRAY
-const verticals = Array(cells)
+const verticals = Array(cellsVertic)
 .fill(null)
-.map(()=>Array(cells-1).fill(false));
+.map(()=>Array(cellsHorize-1).fill(false));
 
 //HORIZONTAL ARRAY
-const horize = Array(cells-1)
+const horize = Array(cellsVertic-1)
 .fill(null)
-.map(()=>Array(cells).fill(false))
+.map(()=>Array(cellsHorize).fill(false))
 
-const startRow = Math.floor(Math.random() * cells);
-const startCol = Math.floor(Math.random() * cells);
+const startRow = Math.floor(Math.random() * cellsVertic);
+const startCol = Math.floor(Math.random() * cellsHorize);
 
 const stepThroughCell = (row, col)=>{
     //IF I HAVE VISITED THE CELL AT [ROW, COL], THEN RETURN
@@ -81,7 +84,7 @@ const stepThroughCell = (row, col)=>{
     for(let nigbor of nigbors){    
         //CHECK IF THIS NEIGHBOUR IS OUT OF BOUNDS
         const [nextRow, nextCol, direction] = nigbor;
-        if(nextRow < 0 || nextRow >= cells || nextCol < 0 || nextCol >= cells){
+        if(nextRow < 0 || nextRow >= cellsVertic || nextCol < 0 || nextCol >= cellsHorize){
             continue;
         }
         //IF NEIGHBOUR IS VISIED , CONTINUE TO NEXT CELL
@@ -113,11 +116,14 @@ horize.forEach((row, rowIndex)=>{
             return;
         }
         const wall = Bodies.rectangle(
-            colIndex * unitLength + unitLength * .5,
+            colIndex * unitWidth + unitWidth * .5,
             rowIndex * unitLength + unitLength,
-            unitLength, 10, {
+            unitWidth, 3, {
                 isStatic: true,
-                label: 'wall'
+                label: 'wall',
+                render:{
+                    fillStyle: '#ffff00'
+                }
             }
         );
         World.add(world, wall);
@@ -131,11 +137,14 @@ verticals.forEach((row, rowIndex)=>{
             return;
         }
         const wall = Bodies.rectangle(
-            rowIndex * unitLength + unitLength,
+            rowIndex * unitWidth + unitWidth,
             colIndex * unitLength + unitLength * .5,
-            10, unitLength, {
+            3, unitLength, {
                 isStatic: true,
-                label: 'wall'
+                label: 'wall',
+                render:{
+                    fillStyle: '#ffff00'
+                }
             }
         );
         World.add(world, wall)
@@ -144,22 +153,30 @@ verticals.forEach((row, rowIndex)=>{
 
 //END GOAL
 const goal = Bodies.rectangle(
-    width - (unitLength * .5),
+    width - (unitWidth * .5),
     height - (unitLength * .5),
+    unitWidth * .5,
     unitLength * .7,
-    unitLength * .7,
-    {isStatic: true,
-    label: 'goal'
+    {   isStatic: true,
+        label: 'goal',
+        render:{
+        fillStyle: '#008ae6'
+        }
     },
 );
 World.add(world, goal);
 
 //BALL
+const ballRadius = Math.min(unitWidth, unitLength) / 4;
 const ball = Bodies.circle(
+    unitWidth * .5,
     unitLength * .5,
-    unitLength * .5,
-    unitLength / 4,
-    {label: 'ball'}
+    ballRadius,
+    {   label: 'ball',
+        render:{
+            fillStyle: '#008ae6'
+        }
+    }
 );
 World.add(world, ball);
 
@@ -168,19 +185,19 @@ document.addEventListener('keydown', event => {
     const {x , y} = ball.velocity;
     //UP
     if(event.keyCode === 38 || event.keyCode === 87){
-        Body.setVelocity(ball, {x, y: y - 5})
+        Body.setVelocity(ball, {x, y: y - 3})
     }
     //DOWN
     if(event.keyCode === 40 || event.keyCode === 83){
-        Body.setVelocity(ball, {x, y: y + 5})
+        Body.setVelocity(ball, {x, y: y + 3})
     }
     //RIGHT
     if(event.keyCode === 39 || event.keyCode === 68){
-        Body.setVelocity(ball, {x: x + 5, y})
+        Body.setVelocity(ball, {x: x + 3, y})
     }
     //LEFT
     if(event.keyCode === 37 || event.keyCode === 65){
-        Body.setVelocity(ball, {x: x - 5, y})
+        Body.setVelocity(ball, {x: x - 3, y})
     }
 })
 
@@ -192,12 +209,17 @@ Events.on(engine, 'collisionStart', event =>{
             labels.includes(collision.bodyA.label) && 
             labels.includes(collision.bodyB.label)
             ){
-            world.gravity.y = 1;
-            world.bodies.forEach(body=>{
-                if(body.label === 'wall'){
-                    Body.setStatic(body, false);
-                }
-            })
+                document.querySelector('.winner').classList.remove('hidden');
+                world.gravity.y = 1;
+                world.bodies.forEach(body=>{
+                    if(body.label === 'wall'){
+                        Body.setStatic(body, false);
+                    }
+                })
         }
     });
 });
+
+//START NEW GAME
+const newGameButt = document.querySelector('#newgame');
+newGameButt.addEventListener('click', event => {location.reload()})
